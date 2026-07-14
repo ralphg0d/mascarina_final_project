@@ -83,6 +83,9 @@ RUN mkdir -p \
     && chmod -R 775 storage bootstrap/cache \
     && chmod +x docker/start.sh
 
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
 EXPOSE 80
 
 CMD ["./docker/start.sh"]

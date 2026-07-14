@@ -10,4 +10,4 @@ php artisan storage:link || true
 php artisan migrate --force || true
 php artisan optimize
 
-apache2-foreground
+eapache2-foreground
