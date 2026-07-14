@@ -3,17 +3,35 @@
 # --------------------------------------------------
 FROM node:20-alpine AS frontend
 
+
+
+
 WORKDIR /app
+
+
+
 
 COPY package.json package-lock.json ./
 
+
+
+
 RUN npm ci
+
+
+
 
 COPY resources ./resources
 COPY public ./public
 COPY vite.config.js ./
 
+
+
+
 RUN npm run build
+
+
+
 
 # Verify that Vite generated the manifest
 RUN test -f public/build/manifest.json \
@@ -21,15 +39,27 @@ RUN test -f public/build/manifest.json \
     && ls -la public/build
 
 
+
+
+
+
+
+
 # --------------------------------------------------
 # Stage 2: Laravel PHP and Apache
 # --------------------------------------------------
 FROM php:8.4-apache
 
+
+
+
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
     COMPOSER_MEMORY_LIMIT=-1 \
     COMPOSER_PROCESS_TIMEOUT=2000 \
     APACHE_DOCUMENT_ROOT=/var/www/html/public
+
+
+
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
@@ -61,6 +91,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+
+
+
 RUN a2enmod rewrite \
     && sed -ri \
         -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
@@ -69,11 +102,23 @@ RUN a2enmod rewrite \
         /etc/apache2/apache2.conf \
         /etc/apache2/conf-available/*.conf
 
+
+
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+
+
 
 WORKDIR /var/www/html
 
+
+
+
 COPY composer.json composer.lock ./
+
+
+
 
 RUN composer install \
     --no-dev \
@@ -83,16 +128,28 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts
 
+
+
+
 # Copy Laravel application
 COPY . .
 
+
+
+
 # Copy compiled frontend assets
 COPY --from=frontend /app/public/build /var/www/html/public/build
+
+
+
 
 # Verify final manifest location
 RUN test -f /var/www/html/public/build/manifest.json \
     && echo "Vite manifest successfully copied" \
     && ls -la /var/www/html/public/build
+
+
+
 
 RUN mkdir -p \
         storage/framework/cache/data \
@@ -109,6 +166,12 @@ RUN mkdir -p \
     && chmod -R 775 storage bootstrap/cache \
     && chmod +x docker/start.sh
 
+
+
+
 EXPOSE 80
+
+
+
 
 CMD ["./docker/start.sh"]
