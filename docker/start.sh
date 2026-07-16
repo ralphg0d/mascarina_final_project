@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-PORT_TO_USE=${PORT:-80}
-sed -i "s/Listen 80/Listen ${PORT_TO_USE}/" /etc/apache2/ports.conf
-sed -i "s/:80/:${PORT_TO_USE}/" /etc/apache2/sites-available/000-default.conf
+PORT_TO_USE="${PORT:-80}"
 
-# Fix storage/cache permissions so Apache/PHP can write logs, sessions, cache
-mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
-chmod -R 775 storage bootstrap/cache
+# Render injects $PORT; Apache must listen on that port.
+sed -i "s/^Listen .*/Listen ${PORT_TO_USE}/" /etc/apache2/ports.conf
+sed -i "s/<VirtualHost \*:.*>/<VirtualHost *:${PORT_TO_USE}>/" /etc/apache2/sites-available/000-default.conf
 
 php artisan storage:link || true
+php artisan package:discover --ansi || true
 php artisan migrate --force || true
+php artisan optimize || true
 
-php artisan config:cache || true
-php artisan route:cache || true
-php artisan view:cache || true
+# Do not start Reverb here — run docker/start-reverb.sh as a separate
+# Render web service (see render.yaml). Background workers are not reachable
+# from the browser for WebSockets.
 
 exec apache2-foreground
